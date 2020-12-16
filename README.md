@@ -1,5 +1,23 @@
 # rnaFoldRand
 Analyze RNA folding with randomization
+
+## Installation
+Clone the repository and create the appropriate conda environment using the provided `conda_env_from_history.yml` file:
+
+```
+git clone git@github.com:moxgreen/rnaFoldRand.git rnaFoldRand;
+cd rnaFoldRand;
+conda env create -f conda_env_from_history.yml;
+```
+
+Activate the newely created environment:
+
+```
+conda activate rnaFoldRand_v0.1
+```
+
+## Usage
+
 ```
 Usage: rna_fold_rand.py N < STDIN.fasta.oneline
 	The nucleotides of each seqeunce in input is suffeld N times
