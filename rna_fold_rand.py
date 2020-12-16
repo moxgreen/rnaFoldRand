@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import with_statement
+
 
 from sys import stdin, stderr
 from optparse import OptionParser
@@ -14,38 +14,72 @@ from numpy import std,mean
 
 N_randomizations=None
 min_stdev=None
+partfunc0=False
+
+def process_sequence(seq):
+	global partfunc0
+	#https://www.tbi.univie.ac.at/RNA/ViennaRNA/doc/html/examples_python.html
+
+	# create fold_compound data structure (required for all subsequently applied  algorithms)
+	fc = RNA.fold_compound(seq)
+	# compute MFE and MFE structure
+	(ss, mfe) = fc.mfe()
+	if partfunc0:
+		# rescale Boltzmann factors for partition function computation
+		fc.exp_params_rescale(mfe)
+		# compute partition function
+		(pp, pf) = fc.pf()
+		return (pp, pf)
+	else:
+		return (ss, mfe)
+
+	## compute centroid structure
+	##(centroid_struct, dist) = fc.centroid()
+	## compute free energy of centroid structure
+	##centroid_en = fc.eval_structure(centroid_struct)
+	## compute MEA structure
+	##(MEA_struct, MEA) = fc.MEA()
+	## compute free energy of MEA structure
+	##MEA_en = fc.eval_structure(MEA_struct)
+	## print everything like RNAfold -p --MEA
+	##print("%s\n%s (%6.2f)" % (seq, mfe_struct, mfe))
+	##print("%s [%6.2f]" % (pp, pf))
+	##print("%s {%6.2f d=%.2f}" % (centroid_struct, centroid_en, dist))
+	##print("%s {%6.2f MEA=%.2f}" % (MEA_struct, MEA_en, MEA))
+	##print(" frequency of mfe structure in ensemble %g; ensemble diversity %-6.2f" % (fc.pr_structure(mfe_struct), fc.mean_bp_distance()))V
+	
 
 def analyze_seq(seq_id_seq_tuple):
 	global N_randomizations
 	global min_stdev
 	(seq_id,seq)=seq_id_seq_tuple
 	L=len(seq)
-	MFEs=list()
-	MFEs_better=0
+	energies=list()
+	energies_better=0
 	
 	# compute minimum free energy (MFE) and corresponding structure
-	#(ss, mfe) = RNA.fold(random.sample(seq,L))
-	(ss, mfe) = RNA.fold(seq)
+	(ss, energy) = process_sequence(seq)
+	process_sequence(seq)
 	for i in range(N_randomizations):
 		# compute minimum free energy (MFE) and corresponding structure
-		(ss_rand, mfe_rand) = RNA.fold("".join(random.sample(seq,L)))
-		MFEs.append(mfe_rand)
-		if mfe_rand < mfe:
-			MFEs_better+=1
+		(structure_rand, energy_rand) = process_sequence("".join(random.sample(seq,L)))
+		energies.append(energy_rand)
+		if energy_rand < energy:
+			energies_better+=1
 	c=L-ss.count(".")
-	sigma = std(MFEs, ddof=1)
-	mu = mean(MFEs)
+	sigma = std(energies, ddof=1)
+	mu = mean(energies)
 	if sigma==0.0:
-		z = (mfe-mu)/min_stdev
+		z = (energy-mu)/min_stdev
 	else:
-		z = (mfe-mu)/sigma
+		z = (energy-mu)/sigma
 		
 	#	0	1	2	3	4	5		6	7	8	9	10					11		
-	return [seq_id, seq, 	ss, 	L,	c,	float(c)/L, 	mfe, 	mu, 	sigma, 	z, 	float(MFEs_better)/N_randomizations, 	MFEs]
+	return [seq_id, seq, 	ss, 	L,	c,	float(c)/L, 	energy,	mu, 	sigma, 	z, 	float(energies_better)/N_randomizations,energies]
 	
 def print_out(out):
 	out[11]=";".join((str(i) for i in out[11]))
-	print "%s\t%s\t%s\t%i\t%i\t%f\t%f\t%f\t%f\t%f\t%f\t%s" % (out[0],out[1],out[2],out[3],out[4],out[5],out[6],out[7],out[8],out[9],out[10],out[11])
+	print("%s\t%s\t%s\t%i\t%i\t%f\t%f\t%f\t%f\t%f\t%f\t%s" % (out[0],out[1],out[2],out[3],out[4],out[5],out[6],out[7],out[8],out[9],out[10],out[11]))
 
 def input_iterator():
 	for line in stdin:
