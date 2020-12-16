@@ -7,3 +7,8 @@ conda_env_from_history.yml:
 conda_env_full.yml:
 	conda activate $(CONDA_ENV);\
 	conda env export > $@
+
+.PHONY: CREATE_ENV
+
+CREATE_ENV: conda_env_from_history.yml
+	conda env create -f $<
